@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>So Sánh Toàn Diện Các Nhà Mạng Internet</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <!-- Visualization & Content Choices:
+        - Tổng Quan - Giá Khởi Điểm: Bar Chart (Chart.js). Goal: Compare entry-level costs. Justification: Direct visual comparison of affordability. Library: Chart.js (Canvas).
+        - So Sánh Chi Tiết - Biểu Đồ Giá vs. Tốc Độ: Scatter Plot (Chart.js). Goal: Show relationships/value for money across various packages. Justification: Helps users identify cost-effective options. Library: Chart.js (Canvas).
+        - Thông Tin Nhà Mạng: Structured HTML/Tailwind cards. Goal: Inform/Organize detailed provider information (packages, fees, promos). Justification: Clear, structured presentation for easy digestion. Method: HTML/Tailwind.
+        - Gợi Ý Lựa Chọn: Styled HTML text. Goal: Inform/Guide specific user segments (landlords, students). Justification: Provides actionable advice based on analysis. Method: HTML/Tailwind.
+        - CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #FAF7F5; /* Warm off-white */
+            color: #4A4A4A; /* Dark Warm Gray */
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px; 
+            max-height: 350px;
+        }
+        @media (min-width: 640px) { /* sm */
+            .chart-container {
+                height: 320px;
+                max-height: 380px;
+            }
+        }
+        @media (min-width: 768px) { /* md */
+            .chart-container {
+                height: 350px;
+                max-height: 400px;
+            }
+        }
+        .section-title {
+            font-size: 1.75rem; /* text-2xl */
+            font-weight: 700;
+            margin-bottom: 1rem;
+            color: #A0522D; /* Sienna - Primary Accent */
+        }
+        .card {
+            background-color: #FFFFFF;
+            border-radius: 0.5rem; /* rounded-lg */
+            border: 1px solid #D2B48C; /* Tan - Secondary Accent */
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+            padding: 1.5rem; /* p-6 */
+            margin-bottom: 1.5rem; /* mb-6 */
+        }
+        .provider-card h3 {
+            font-size: 1.5rem; /* text-xl */
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            line-height: 1.1;
+        }
+        .stat-label {
+            font-size: 0.8rem;
+            color: #6c757d; /* Muted gray for labels */
+        }
+        .tab-button {
+            padding: 0.5rem 1rem;
+            margin-right: 0.5rem;
+            border-radius: 0.375rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.3s, color 0.3s;
+            border: 1px solid #D2B48C;
+            color: #A0522D;
+        }
+        .tab-button.active {
+            background-color: #A0522D;
+            color: #FFFFFF;
+            border-color: #A0522D;
+        }
+        .tab-button:not(.active):hover {
+            background-color: #FAF7F5;
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <header class="bg-[#A0522D] text-white py-8 px-4 text-center shadow-md">
+        <h1 class="text-3xl md:text-4xl font-bold">So Sánh Toàn Diện Các Nhà Mạng Internet</h1>
+        <p class="mt-2 text-lg opacity-90">Thông tin chi tiết giúp bạn chọn gói cước phù hợp nhất.</p>
+    </header>
+
+    <main class="container mx-auto p-4 md:p-8">
+
+        <section id="tong-quan" class="mb-12">
+            <h2 class="section-title text-center">Tổng Quan Thị Trường Internet</h2>
+            <p class="text-center text-gray-600 mb-8">Dưới đây là cái nhìn tổng thể về giá cước khởi điểm cho các gói cước hộ gia đình từ những nhà mạng lớn tại Việt Nam.</p>
+            <div class="grid grid-cols-1 md:grid-cols-1 gap-8">
+                <div class="card">
+                    <h3 class="text-xl font-semibold mb-4 text-center" style="color: #A0522D;">Giá Cước Hộ Gia Đình Khởi Điểm</h3>
+                    <div class="chart-container">
+                        <canvas id="startingPriceChart"></canvas>
+                    </div>
+                    <p class="mt-4 text-sm text-gray-500 text-center">So sánh giá cước hàng tháng thấp nhất (VNĐ) cho các gói cơ bản. Mobi Fiber tính giá trung bình từ gói 16 tháng.</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="chi-tiet-nha-mang" class="mb-12">
+            <h2 class="section-title text-center">So Sánh Chi Tiết Các Nhà Mạng</h2>
+            <p class="text-center text-gray-600 mb-8">Khám phá thông tin chi tiết về các gói cước phổ biến, chi phí và ưu đãi từ mỗi nhà cung cấp.</p>
+            
+            <div id="providerDetailsContainer" class="space-y-6">
+            </div>
+
+            <div class="card mt-10">
+                <h3 class="text-xl font-semibold mb-6 text-center" style="color: #A0522D;">Biểu Đồ So Sánh Giá và Tốc Độ Các Gói Cước Tiêu Biểu</h3>
+                <p class="text-center text-gray-600 mb-6 text-sm">Mỗi điểm trên biểu đồ thể hiện một gói cước. Các gói cước ở gần góc dưới bên phải mang lại giá trị tốt hơn (tốc độ cao hơn với giá thấp hơn). Di chuột/chạm vào điểm để xem chi tiết.</p>
+                <div class="chart-container h-[400px] md:h-[450px] max-h-[450px]">
+                    <canvas id="priceSpeedScatterChart"></canvas>
+                </div>
+            </div>
+        </section>
+        
+        <section id="goi-y" class="mb-12 card" style="background-color: #FAF7F5; border-color: #A0522D;">
+            <h2 class="section-title text-center">Gợi Ý Lựa Chọn Gói Cước</h2>
+            <div class="text-center">
+                <p class="text-gray-700 mb-6">Dựa trên nhu cầu phổ biến, đây là một số gợi ý cho chủ nhà trọ và sinh viên:</p>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="p-6 rounded-lg border border-[#D2B48C] bg-white">
+                        <h3 class="text-xl font-semibold mb-3" style="color: #A0522D;">Dành cho Chủ Nhà Trọ</h3>
+                        <p class="text-sm text-gray-600 mb-2">Cần tốc độ ổn định cho nhiều người dùng, cân nhắc các gói có tốc độ từ 300-500 Mbps. Các gói kèm Mesh Wi-Fi là một lợi thế.</p>
+                        <p class="text-sm text-gray-700 font-semibold">Gợi ý cụ thể:</p>
+                        <ul class="list-disc list-inside text-sm text-gray-600 mt-1 space-y-1">
+                            <li><strong>Mobi Fiber Wifi 2 (400 Mbps):</strong> Khoảng 135.000 VNĐ/tháng. Giá tốt, tốc độ khá.</li>
+                            <li><strong>Viettel NETVT1/MESHVT1 (300 Mbps):</strong> Từ 180.000 - 255.000 VNĐ/tháng. Phổ biến, có tùy chọn Mesh.</li>
+                            <li><strong>FPT Giga (300 Mbps):</strong> Từ 175.000 - 230.000 VNĐ/tháng. Tùy chọn tốt nếu giá cạnh tranh tại khu vực.</li>
+                        </ul>
+                    </div>
+                    <div class="p-6 rounded-lg border border-[#D2B48C] bg-white">
+                        <h3 class="text-xl font-semibold mb-3" style="color: #A0522D;">Dành cho Sinh Viên</h3>
+                        <p class="text-sm text-gray-600 mb-2">Ưu tiên giá cả phải chăng, tốc độ đủ dùng cho học tập và giải trí cơ bản (từ 150-300 Mbps).</p>
+                        <p class="text-sm text-gray-700 font-semibold">Gợi ý cụ thể:</p>
+                         <ul class="list-disc list-inside text-sm text-gray-600 mt-1 space-y-1">
+                            <li><strong>Mobi Fiber Wifi 1 (300 Mbps):</strong> Khoảng 112.500 VNĐ/tháng. Giá rất cạnh tranh.</li>
+                            <li><strong>FPT Giga (150 Mbps):</strong> Từ 175.000 VNĐ/tháng. Nếu có ưu đãi tốt.</li>
+                            <li><strong>Các gói cơ bản Viettel/VNPT:</strong> Từ 180.000 VNĐ/tháng. So sánh giá tại khu vực cụ thể.</li>
+                        </ul>
+                    </div>
+                </div>
+                 <div class="mt-8 p-6 rounded-lg bg-[#A0522D] text-white shadow-lg border-2 border-[#D2B48C]">
+                    <h4 class="text-xl font-bold mb-2">🌟 Lựa chọn nổi bật về Giá/Hiệu Năng:</h4>
+                    <p class="text-lg font-bold mb-1">Mobi Fiber - Gói Wifi 2</p>
+                    <p class="text-base"><span class="font-semibold">Tốc độ:</span> 400 Mbps</p>
+                    <p class="text-base"><span class="font-semibold">Giá ước tính:</span> <strong class="text-[#FFD166]">Khoảng 135.000 VNĐ/tháng</strong> (khi đóng 16 tháng)</p>
+                    <p class="mt-2 text-sm opacity-90">Miễn phí lắp đặt và có thể có thêm ưu đãi tháng cước. Phù hợp cho nhu cầu sử dụng của nhiều người với chi phí hợp lý.</p>
+                </div>
+                <p class="mt-6 text-xs text-gray-500">Lưu ý: Giá cước và khuyến mãi có thể thay đổi tùy thời điểm và khu vực. Vui lòng liên hệ nhà cung cấp để có thông tin chính xác nhất.</p>
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="text-center py-6 border-t border-[#D2B48C]" style="background-color: #FAF7F5;">
+        <p class="text-sm text-gray-500">&copy; 2024 Thông Tin So Sánh Nhà Mạng. Dữ liệu tham khảo.</p>
+        <p class="text-xs text-gray-400 mt-1">Vui lòng kiểm tra trực tiếp với nhà cung cấp để có thông tin mới nhất.</p>
+    </footer>
+
+    <script>
+        const providersInfo = [
+            {
+                name: "Viettel",
+                color: "#8B4513",
+                logoChar: "V",
+                description: "Mạng lưới rộng khắp, nhiều lựa chọn cho gia đình và doanh nghiệp.",
+                packages: [
+                    { name: "NETVT1", speed_desc: "300 Mbps", price_desc: "Từ 180.000 VNĐ/tháng (Ngoại thành/61 tỉnh) hoặc 220.000 VNĐ/tháng (Nội thành HN/HCM)", speed_val: 300, price_min: 180000, price_nt: 220000 },
+                    { name: "MESHVT1", speed_desc: "300 Mbps (kèm Mesh)", price_desc: "Từ 210.000 VNĐ/tháng (Ngoại thành/61 tỉnh) hoặc 255.000 VNĐ/tháng (Nội thành HN/HCM)", speed_val: 300, price_min: 210000, price_nt: 255000 },
+                    { name: "NETVT2", speed_desc: "500 Mbps - 1 Gbps", price_desc: "Từ 240.000 VNĐ/tháng (Ngoại thành/61 tỉnh) hoặc 265.000 VNĐ/tháng (Nội thành HN/HCM)", speed_val: 500, price_min: 240000, price_nt: 265000 }
+                ],
+                installFee: "300.000 VNĐ",
+                promo: "Tặng 1 tháng cước khi thanh toán trước 12 tháng."
+            },
+            {
+                name: "FPT",
+                color: "#CD853F",
+                logoChar: "F",
+                description: "Tốc độ cao, dịch vụ đa dạng kèm truyền hình FPT Play.",
+                packages: [
+                    { name: "Giga", speed_desc: "150/300 Mbps", price_desc: "175.000 - 230.000 VNĐ/tháng", speed_val: 150, price_min: 175000, price_max:230000 },
+                    { name: "Sky", speed_desc: "1 Gbps/300 Mbps", price_desc: "195.000 - 260.000 VNĐ/tháng", speed_val: 1000, price_min: 195000, price_max: 260000 },
+                    { name: "Meta", speed_desc: "1 Gbps", price_desc: "295.000 - 325.000 VNĐ/tháng", speed_val: 1000, price_min: 295000, price_max: 325000 }
+                ],
+                installFee: "300.000 VNĐ",
+                promo: "Tặng 1 tháng cước khi thanh toán trước 12 tháng."
+            },
+            {
+                name: "VNPT",
+                color: "#B8860B",
+                logoChar: "N",
+                description: "Nhà mạng lâu đời, hạ tầng cáp quang phủ rộng toàn quốc.",
+                packages: [
+                    { name: "HOME 1", speed_desc: "300 Mbps", price_desc: "180.000 VNĐ/tháng (Ngoại thành) hoặc 250.000 VNĐ/tháng (Nội thành)", equipment: "ONT 2 băng tần", speed_val: 300, price_min: 180000, price_nt: 250000 },
+                    { name: "HOME 2", speed_desc: "500 Mbps", price_desc: "240.000 VNĐ/tháng (Ngoại thành) hoặc 280.000 VNĐ/tháng (Nội thành)", equipment: "ONT 2 băng tần", speed_val: 500, price_min: 240000, price_nt: 280000 },
+                    { name: "HOME 3 (Mesh)", speed_desc: "500 Mbps - 1 Gbps", price_desc: "310.000 VNĐ/tháng (Ngoại thành) hoặc 350.000 VNĐ/tháng (Nội thành)", equipment: "01 Wifi Mesh 5/6", speed_val: 500, price_min: 310000, price_nt: 350000 }
+                ],
+                installFee: "300.000 VNĐ",
+                promo: "Tặng 1 tháng cước khi thanh toán trước 12 tháng."
+            },
+            {
+                name: "Mobi Fiber",
+                color: "#BC8F8F",
+                logoChar: "M",
+                description: "Giải pháp Internet cáp quang từ MobiFone, gói cước dài hạn hấp dẫn.",
+                packages: [
+                    { name: "Wifi 1", speed_desc: "300 Mbps", price_desc: "Khoảng 112.500 VNĐ/tháng (Từ gói 1.800.000 VNĐ/16 tháng)", speed_val: 300, price_min: 112500 },
+                    { name: "Wifi 2", speed_desc: "400 Mbps", price_desc: "Khoảng 135.000 VNĐ/tháng (Từ gói 2.160.000 VNĐ/16 tháng)", speed_val: 400, price_min: 135000 },
+                    { name: "Wifi 3", speed_desc: "500 Mbps", price_desc: "Khoảng 157.500 VNĐ/tháng (Từ gói 2.520.000 VNĐ/16 tháng)", speed_val: 500, price_min: 157500 }
+                ],
+                installFee: "Miễn phí lắp đặt",
+                promo: "Tùy chương trình có thể tặng thêm 3 tháng cước."
+            }
+        ];
+
+        function wrapLabel(label, maxWidth = 16) {
+            if (typeof label !== 'string') return label;
+            if (label.length <= maxWidth) return label;
+
+            const words = label.split(' ');
+            let lines = [];
+            let currentLine = '';
+            for (const word of words) {
+                if ((currentLine + word).length > maxWidth && currentLine.length > 0) {
+                    lines.push(currentLine.trim());
+                    currentLine = word + ' ';
+                } else {
+                    currentLine += word + ' ';
+                }
+            }
+            lines.push(currentLine.trim());
+            return lines;
+        }
+
+        const tooltipTitleCallback = (tooltipItems) => {
+            const item = tooltipItems[0];
+            let label = item.chart.data.labels[item.dataIndex];
+            if (Array.isArray(label)) {
+                return label.join(' ');
+            }
+            return label;
+        };
+        
+        const chartDefaultFont = { family: 'Inter', size: 11 };
+        const chartTitleColor = '#4A4A4A';
+        const chartTickColor = '#6c757d';
+        const chartGridColor = '#D2B48C33'; // Tan with opacity
+
+        const commonChartOptions = {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                tooltip: {
+                    callbacks: { title: tooltipTitleCallback },
+                    bodyFont: chartDefaultFont,
+                    titleFont: chartDefaultFont,
+                },
+                legend: {
+                    labels: { color: chartTitleColor, font: chartDefaultFont }
+                }
+            },
+            scales: {
+                x: {
+                    ticks: { color: chartTickColor, font: chartDefaultFont },
+                    grid: { display: false }
+                },
+                y: {
+                    ticks: { color: chartTickColor, font: chartDefaultFont },
+                    grid: { color: chartGridColor, drawBorder: false }
+                }
+            }
+        };
+
+        // Chart 1: Starting Prices
+        const startingPriceCtx = document.getElementById('startingPriceChart').getContext('2d');
+        new Chart(startingPriceCtx, {
+            type: 'bar',
+            data: {
+                labels: providersInfo.map(p => wrapLabel(p.name)),
+                datasets: [{
+                    label: 'Giá khởi điểm (VNĐ/tháng)',
+                    data: providersInfo.map(p => p.packages[0].price_min),
+                    backgroundColor: providersInfo.map(p => p.color),
+                    borderColor: providersInfo.map(p => p.color),
+                    borderWidth: 1,
+                    borderRadius: 4,
+                }]
+            },
+            options: { ...commonChartOptions, indexAxis: 'y', scales: { ...commonChartOptions.scales, x: {...commonChartOptions.scales.x, title: {display: true, text: "VNĐ/tháng", color: chartTitleColor, font: chartDefaultFont }}}}
+        });
+        
+        // Provider Details Cards
+        const providerDetailsContainer = document.getElementById('providerDetailsContainer');
+        providersInfo.forEach(provider => {
+            const card = document.createElement('div');
+            card.className = 'card provider-card';
+            
+            let packagesHTML = provider.packages.map(pkg => `
+                <div class="mb-2 pb-2 border-b border-dashed border-[#D2B48C33]">
+                    <p class="font-semibold text-sm" style="color:${provider.color};">${pkg.name}</p>
+                    <p class="text-xs text-gray-600">Tốc độ: ${pkg.speed_desc}</p>
+                    <p class="text-xs text-gray-600">Giá: ${pkg.price_desc}</p>
+                    ${pkg.equipment ? `<p class="text-xs text-gray-600">Thiết bị: ${pkg.equipment}</p>` : ''}
+                </div>
+            `).join('');
+
+            card.innerHTML = `
+                <h3 style="color:${provider.color}; display: flex; align-items: center;">
+                    <span class="inline-block w-6 h-6 rounded-full text-white flex items-center justify-center mr-2 text-sm font-bold" style="background-color:${provider.color};">${provider.logoChar}</span>
+                    ${provider.name}
+                </h3>
+                <p class="text-sm text-gray-600 mb-3">${provider.description}</p>
+                <div class="mb-3">
+                    <h4 class="font-semibold text-xs text-gray-700 mb-1">Gói Cước Phổ Biến:</h4>
+                    ${packagesHTML}
+                </div>
+                <div class="grid grid-cols-2 gap-2 text-xs mt-2">
+                    <div>
+                        <p class="font-semibold text-gray-700">Phí Lắp Đặt:</p>
+                        <p class="text-gray-600">${provider.installFee}</p>
+                    </div>
+                    <div>
+                        <p class="font-semibold text-gray-700">Khuyến Mãi Chung:</p>
+                        <p class="text-gray-600">${provider.promo}</p>
+                    </div>
+                </div>
+            `;
+            providerDetailsContainer.appendChild(card);
+        });
+
+        // Scatter Plot: Price vs. Speed
+        const scatterData = {
+            datasets: providersInfo.map(provider => ({
+                label: provider.name,
+                data: provider.packages.reduce((acc, pkg) => {
+                    if (provider.name === "FPT" && pkg.name === "Giga") {
+                         acc.push({ x: 175000, y: 150, packageName: `FPT Giga (150Mbps)` });
+                         acc.push({ x: 230000, y: 300, packageName: `FPT Giga (300Mbps)` });
+                    } else if (pkg.price_nt && pkg.price_min !== pkg.price_nt) {
+                         acc.push({ x: pkg.price_min, y: pkg.speed_val, packageName: `${pkg.name} (Ngoại thành/61 tỉnh)` });
+                         acc.push({ x: pkg.price_nt, y: pkg.speed_val, packageName: `${pkg.name} (Nội thành)` });
+                    }
+                    else {
+                        acc.push({ x: pkg.price_min, y: pkg.speed_val, packageName: pkg.name });
+                        if(pkg.price_max && pkg.price_min !== pkg.price_max) acc.push({ x: pkg.price_max, y: pkg.speed_val, packageName: `${pkg.name} (Giá cao)` });
+                    }
+                    return acc;
+                }, []),
+                backgroundColor: provider.color,
+                borderColor: provider.color,
+                pointRadius: 6,
+                pointHoverRadius: 8
+            }))
+        };
+        
+        const priceSpeedScatterCtx = document.getElementById('priceSpeedScatterChart').getContext('2d');
+        new Chart(priceSpeedScatterCtx, {
+            type: 'scatter',
+            data: scatterData,
+            options: {
+                ...commonChartOptions,
+                scales: {
+                    x: { ...commonChartOptions.scales.x, title: { display: true, text: 'Giá cước hàng tháng (VNĐ)', color: chartTitleColor, font: chartDefaultFont }},
+                    y: { ...commonChartOptions.scales.y, title: { display: true, text: 'Tốc độ (Mbps)', color: chartTitleColor, font: chartDefaultFont }}
+                },
+                plugins: {
+                    ...commonChartOptions.plugins,
+                    tooltip: {
+                        ...commonChartOptions.plugins.tooltip,
+                        callbacks: {
+                            title: function(tooltipItems) { return tooltipItems[0].dataset.label; },
+                            label: function(context) {
+                                const point = context.dataset.data[context.dataIndex];
+                                return `${point.packageName}: ${point.y} Mbps - ${point.x.toLocaleString('vi-VN')} VNĐ`;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    </script>
+</body>
+</html>
